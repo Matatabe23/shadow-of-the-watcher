@@ -7,7 +7,11 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
 import org.jetbrains.annotations.Nullable;
+
+import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
 
@@ -15,6 +19,7 @@ public class WatcherEntity extends PathfinderMob {
     @Nullable
     private UUID ownerUUID;
     private double ringRadiusBlocks = -1.0D;
+    private int smokeTicker = 0;
 
     public WatcherEntity(EntityType<? extends PathfinderMob> type, Level level) {
         super(type, level);
@@ -71,5 +76,24 @@ public class WatcherEntity extends PathfinderMob {
         if (tag.contains("RingRadius")) {
             ringRadiusBlocks = tag.getDouble("RingRadius");
         }
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        smokeTicker++;
+        if (level().isClientSide()) {
+            return;
+        }
+        if (smokeTicker % 18 != 0) {
+            return;
+        }
+        ServerLevel serverLevel = (ServerLevel) level();
+        Vec3 p = position();
+        int n = 2 + serverLevel.random.nextInt(3);
+        double cx = p.x;
+        double cy = p.y + 0.42D;
+        double cz = p.z;
+        serverLevel.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, cx, cy, cz, n, 0.07D, 0.32D, 0.07D, 0.0D);
     }
 }

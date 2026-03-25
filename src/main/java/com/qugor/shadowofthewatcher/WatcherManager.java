@@ -2,18 +2,17 @@ package com.qugor.shadowofthewatcher;
 
 import com.qugor.shadowofthewatcher.entity.WatcherEntity;
 import com.qugor.shadowofthewatcher.registry.ModEntityTypes;
-import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,7 +43,7 @@ public final class WatcherManager {
         }
         WatcherEntity watcher = findWatcher(level, watcherUuid);
         if (watcher == null || !watcher.isAlive()) {
-            spawnWatcher(level, target);
+            spawnWatcher(level, players);
             return;
         }
         watcher.setOwnerUUID(target.getUUID());
@@ -59,25 +58,38 @@ public final class WatcherManager {
         double pursuitMargin = Config.watcherPursuitMarginBlocks;
 
         if (distH < vanishBlocks) {
-            teleportFarAway(level, target, watcher);
-            fleeCooldownTicks = Config.watcherFleeCooldownTicks;
-            facePlayer(watcher, target);
+            if (!teleportFarAway(level, target, watcher)) {
+                tryOtherPlayersOrDespawn(level, players, watcher);
+            } else {
+                fleeCooldownTicks = Config.watcherFleeCooldownTicks;
+            }
+            faceWatcherIfPresent(level, players);
             return;
         }
 
         if (fleeCooldownTicks > 0) {
             fleeCooldownTicks--;
-            facePlayer(watcher, target);
+            faceWatcherIfPresent(level, players);
             return;
         }
 
         if (distH > stalkBlocks + pursuitMargin) {
-            placeAtRing(target, watcher);
-            facePlayer(watcher, target);
+            if (!placeAtRing(target, watcher)) {
+                tryOtherPlayersOrDespawn(level, players, watcher);
+            }
+            faceWatcherIfPresent(level, players);
             return;
         }
 
-        facePlayer(watcher, target);
+        faceWatcherIfPresent(level, players);
+    }
+
+    private static void faceWatcherIfPresent(ServerLevel level, List<ServerPlayer> players) {
+        WatcherEntity w = findWatcher(level, watcherUuid);
+        ServerPlayer t = findPlayer(players, currentTargetUuid);
+        if (w != null && w.isAlive() && t != null) {
+            facePlayer(w, t);
+        }
     }
 
     private static void ensureTarget(ServerLevel level, List<ServerPlayer> players, long switchTicks, long now) {
@@ -113,8 +125,10 @@ public final class WatcherManager {
         if (target == null) {
             return;
         }
-        placeAtRing(target, watcher);
-        facePlayer(watcher, target);
+        if (!placeAtRing(target, watcher)) {
+            tryOtherPlayersOrDespawn(level, players, watcher);
+        }
+        faceWatcherIfPresent(level, players);
     }
 
     private static void pickRandomTarget(ServerLevel level, List<ServerPlayer> players) {
@@ -171,15 +185,63 @@ public final class WatcherManager {
         return entity instanceof WatcherEntity w ? w : null;
     }
 
-    private static void spawnWatcher(ServerLevel level, ServerPlayer target) {
-        WatcherEntity watcher = ModEntityTypes.WATCHER.get().create(level);
-        if (watcher == null) {
-            return;
+    private static void spawnWatcher(ServerLevel level, List<ServerPlayer> players) {
+        ArrayList<ServerPlayer> copy = shufflePlayers(level, players);
+        for (ServerPlayer target : copy) {
+            double radius = rollIdealRingRadiusBlocks(target);
+            if (!WatcherSpawnPlacement.playerHasValidRingSample(level, target, radius)) {
+                continue;
+            }
+            WatcherEntity watcher = ModEntityTypes.WATCHER.get().create(level);
+            if (watcher == null) {
+                return;
+            }
+            watcher.setOwnerUUID(target.getUUID());
+            level.addFreshEntity(watcher);
+            watcherUuid = watcher.getUUID();
+            currentTargetUuid = target.getUUID();
+            watcher.setRingRadiusBlocks(radius);
+            if (WatcherSpawnPlacement.tryPlaceOntoRing(level, target, watcher, radius)) {
+                return;
+            }
+            clearWatcher(level);
+            currentTargetUuid = null;
         }
-        watcher.setOwnerUUID(target.getUUID());
-        level.addFreshEntity(watcher);
-        watcherUuid = watcher.getUUID();
-        placeAtRing(target, watcher);
+        currentTargetUuid = null;
+    }
+
+    private static void tryOtherPlayersOrDespawn(ServerLevel level, List<ServerPlayer> players, WatcherEntity watcher) {
+        UUID skip = currentTargetUuid;
+        ArrayList<ServerPlayer> copy = shufflePlayers(level, players);
+        for (ServerPlayer p : copy) {
+            if (skip != null && p.getUUID().equals(skip)) {
+                continue;
+            }
+            double radius = rollIdealRingRadiusBlocks(p);
+            if (!WatcherSpawnPlacement.playerHasValidRingSample(level, p, radius)) {
+                continue;
+            }
+            currentTargetUuid = p.getUUID();
+            watcher.setOwnerUUID(p.getUUID());
+            watcher.setRingRadiusBlocks(radius);
+            if (WatcherSpawnPlacement.tryPlaceOntoRing(level, p, watcher, radius)) {
+                return;
+            }
+        }
+        clearWatcher(level);
+        currentTargetUuid = null;
+    }
+
+    private static ArrayList<ServerPlayer> shufflePlayers(ServerLevel level, List<ServerPlayer> players) {
+        ArrayList<ServerPlayer> copy = new ArrayList<>(players);
+        RandomSource random = level.random;
+        for (int i = copy.size() - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            ServerPlayer t = copy.get(i);
+            copy.set(i, copy.get(j));
+            copy.set(j, t);
+        }
+        return copy;
     }
 
     private static double rollIdealRingRadiusBlocks(ServerPlayer target) {
@@ -192,26 +254,14 @@ public final class WatcherManager {
         return chunks * (double) WatcherConstants.BLOCKS_PER_CHUNK;
     }
 
-    private static void placeAtRing(ServerPlayer target, WatcherEntity watcher) {
+    private static boolean placeAtRing(ServerPlayer target, WatcherEntity watcher) {
         ServerLevel level = (ServerLevel) target.level();
-        TeleportEffects.spawnTeleportFog(level, watcher.position());
-        RandomSource random = target.getRandom();
         double ringRadiusBlocks = rollIdealRingRadiusBlocks(target);
         watcher.setRingRadiusBlocks(ringRadiusBlocks);
-        double angle = random.nextDouble() * Math.PI * 2.0;
-        double px = target.getX() + Math.cos(angle) * ringRadiusBlocks;
-        double pz = target.getZ() + Math.sin(angle) * ringRadiusBlocks;
-        BlockPos column = BlockPos.containing(px, 0.0, pz);
-        level.getChunk(column.getX() >> 4, column.getZ() >> 4);
-        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
-        watcher.setPos(px + 0.5, y, pz + 0.5);
-        watcher.setDeltaMovement(Vec3.ZERO);
+        return WatcherSpawnPlacement.tryPlaceOntoRing(level, target, watcher, ringRadiusBlocks);
     }
 
-    private static void teleportFarAway(ServerLevel level, ServerPlayer target, WatcherEntity watcher) {
-        TeleportEffects.spawnTeleportFog(level, watcher.position());
-        RandomSource random = target.getRandom();
-        double angle = random.nextDouble() * Math.PI * 2.0;
+    private static boolean teleportFarAway(ServerLevel level, ServerPlayer target, WatcherEntity watcher) {
         double minFarBlocks = Config.watcherFleeFarDistanceChunks * (double) WatcherConstants.BLOCKS_PER_CHUNK;
         double farBlocks = minFarBlocks;
         MinecraftServer server = level.getServer();
@@ -219,14 +269,13 @@ public final class WatcherManager {
             int vd = server.getPlayerList().getViewDistance();
             farBlocks = Math.max(minFarBlocks, (vd + 4) * (double) WatcherConstants.BLOCKS_PER_CHUNK);
         }
-        double px = target.getX() + Math.cos(angle) * farBlocks;
-        double pz = target.getZ() + Math.sin(angle) * farBlocks;
-        BlockPos column = BlockPos.containing(px, 0.0, pz);
-        level.getChunk(column.getX() >> 4, column.getZ() >> 4);
-        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
-        watcher.setPos(px + 0.5, y, pz + 0.5);
-        watcher.setDeltaMovement(Vec3.ZERO);
-        watcher.setRingRadiusBlocks(rollIdealRingRadiusBlocks(target));
+        if (WatcherSpawnPlacement.tryTeleportFar(level, target, watcher, farBlocks)) {
+            watcher.setRingRadiusBlocks(rollIdealRingRadiusBlocks(target));
+            return true;
+        }
+        double ringRadiusBlocks = rollIdealRingRadiusBlocks(target);
+        watcher.setRingRadiusBlocks(ringRadiusBlocks);
+        return WatcherSpawnPlacement.tryPlaceOntoRing(level, target, watcher, ringRadiusBlocks);
     }
 
     private static void facePlayer(WatcherEntity watcher, ServerPlayer player) {
@@ -242,5 +291,4 @@ public final class WatcherManager {
         watcher.setYBodyRot(yRot);
         watcher.setXRot(xRot);
     }
-
 }
