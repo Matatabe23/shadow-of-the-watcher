@@ -3,7 +3,6 @@ package com.qugor.shadowofthewatcher;
 import com.qugor.shadowofthewatcher.entity.WatcherEntity;
 import com.qugor.shadowofthewatcher.registry.ModEntityTypes;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -60,7 +59,6 @@ public final class WatcherManager {
         double pursuitMargin = Config.watcherPursuitMarginBlocks;
 
         if (distH < vanishBlocks) {
-            spawnFog(level, watcher.position());
             teleportFarAway(level, target, watcher);
             fleeCooldownTicks = Config.watcherFleeCooldownTicks;
             facePlayer(watcher, target);
@@ -179,9 +177,9 @@ public final class WatcherManager {
             return;
         }
         watcher.setOwnerUUID(target.getUUID());
-        placeAtRing(target, watcher);
         level.addFreshEntity(watcher);
         watcherUuid = watcher.getUUID();
+        placeAtRing(target, watcher);
     }
 
     private static double rollIdealRingRadiusBlocks(ServerPlayer target) {
@@ -196,6 +194,7 @@ public final class WatcherManager {
 
     private static void placeAtRing(ServerPlayer target, WatcherEntity watcher) {
         ServerLevel level = (ServerLevel) target.level();
+        TeleportEffects.spawnTeleportFog(level, watcher.position());
         RandomSource random = target.getRandom();
         double ringRadiusBlocks = rollIdealRingRadiusBlocks(target);
         watcher.setRingRadiusBlocks(ringRadiusBlocks);
@@ -210,6 +209,7 @@ public final class WatcherManager {
     }
 
     private static void teleportFarAway(ServerLevel level, ServerPlayer target, WatcherEntity watcher) {
+        TeleportEffects.spawnTeleportFog(level, watcher.position());
         RandomSource random = target.getRandom();
         double angle = random.nextDouble() * Math.PI * 2.0;
         double minFarBlocks = Config.watcherFleeFarDistanceChunks * (double) WatcherConstants.BLOCKS_PER_CHUNK;
@@ -243,16 +243,4 @@ public final class WatcherManager {
         watcher.setXRot(xRot);
     }
 
-    private static void spawnFog(ServerLevel level, Vec3 pos) {
-        double x = pos.x;
-        double y = pos.y + 1.0;
-        double z = pos.z;
-        for (int i = 0; i < 72; i++) {
-            double ox = level.random.nextGaussian() * 0.6;
-            double oy = level.random.nextGaussian() * 0.9;
-            double oz = level.random.nextGaussian() * 0.6;
-            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, x + ox, y + oy, z + oz, 1, 0.0, 0.06, 0.0, 0.02);
-            level.sendParticles(ParticleTypes.CLOUD, x + ox, y + oy, z + oz, 1, 0.0, 0.05, 0.0, 0.02);
-        }
-    }
 }

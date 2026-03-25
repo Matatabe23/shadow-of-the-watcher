@@ -1,6 +1,7 @@
 package com.qugor.shadowofthewatcher.registry;
 
 import com.qugor.shadowofthewatcher.ShadowOfTheWatcher;
+import com.qugor.shadowofthewatcher.entity.SceneActorEntity;
 import com.qugor.shadowofthewatcher.entity.WatcherEntity;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
@@ -19,6 +20,13 @@ public final class ModEntityTypes {
             .clientTrackingRange(16)
             .updateInterval(1)
             .build(ResourceLocation.fromNamespaceAndPath(ShadowOfTheWatcher.MOD_ID, "watcher").toString()));
+
+    public static final RegistryObject<EntityType<SceneActorEntity>> SCENE_ACTOR = ENTITY_TYPES.register("scene_actor",
+        () -> EntityType.Builder.of(SceneActorEntity::new, MobCategory.MISC)
+            .sized(0.6F, 1.8F)
+            .clientTrackingRange(10)
+            .updateInterval(20)
+            .build(ResourceLocation.fromNamespaceAndPath(ShadowOfTheWatcher.MOD_ID, "scene_actor").toString()));
 
     private ModEntityTypes() {}
 }

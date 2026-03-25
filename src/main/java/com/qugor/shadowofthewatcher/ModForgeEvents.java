@@ -1,5 +1,6 @@
 package com.qugor.shadowofthewatcher;
 
+import com.qugor.shadowofthewatcher.entity.SceneActorEntity;
 import com.qugor.shadowofthewatcher.entity.WatcherEntity;
 import com.qugor.shadowofthewatcher.registry.ModEntityTypes;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
@@ -13,5 +14,6 @@ public final class ModForgeEvents {
     @SubscribeEvent
     public static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(ModEntityTypes.WATCHER.get(), WatcherEntity.createAttributes().build());
+        event.put(ModEntityTypes.SCENE_ACTOR.get(), SceneActorEntity.createAttributes().build());
     }
 }

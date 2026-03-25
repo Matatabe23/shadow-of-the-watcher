@@ -1,5 +1,6 @@
 {
   "entity.shadow_of_the_watcher.watcher": "Смотрящий",
+  "entity.shadow_of_the_watcher.scene_actor": "Сценический актёр",
   "item.shadow_of_the_watcher.watcher_item": "Яйцо призыва смотрящего",
   "itemGroup.shadow_of_the_watcher.watcher_tab": "Тень смотрящего"
 }

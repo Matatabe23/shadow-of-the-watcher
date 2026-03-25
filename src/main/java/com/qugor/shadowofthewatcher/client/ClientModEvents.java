@@ -14,5 +14,6 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(ModEntityTypes.WATCHER.get(), WatcherRenderer::new);
+        event.registerEntityRenderer(ModEntityTypes.SCENE_ACTOR.get(), SceneActorRenderer::new);
     }
 }

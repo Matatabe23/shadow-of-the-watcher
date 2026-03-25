@@ -1,5 +1,6 @@
 {
   "entity.shadow_of_the_watcher.watcher": "Watcher",
+  "entity.shadow_of_the_watcher.scene_actor": "Scene actor",
   "item.shadow_of_the_watcher.watcher_item": "Watcher Spawn Egg",
   "itemGroup.shadow_of_the_watcher.watcher_tab": "Shadow of the Watcher"
 }
