@@ -6,7 +6,8 @@ plugins {
 }
 
 version = '1.0.0'
-group = 'com.example.examplemod'
+def modId = 'shadow_of_the_watcher'
+group = 'com.qugor.shadowofthewatcher'
 
 java {
     toolchain {
@@ -26,7 +27,7 @@ minecraft {
             workingDir = layout.projectDirectory.dir('run')
 
             systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
-            systemProperty 'forge.enabledGameTestNamespaces', 'examplemod'
+            systemProperty 'forge.enabledGameTestNamespaces', modId
         }
 
         register('client')
@@ -34,7 +35,7 @@ minecraft {
         register('gameTestServer')
         register('data') {
             workingDir = layout.projectDirectory.dir('run-data')
-            args '--mod', 'examplemod', '--all',
+            args '--mod', modId, '--all',
                     '--output', layout.projectDirectory.dir('src/generated/resources'),
                     '--existing', layout.projectDirectory.dir('src/main/resources')
         }
@@ -56,4 +57,10 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+processResources {
+    filesMatching('pack.mcmeta') {
+        expand 'mod_id': modId
+    }
 }
