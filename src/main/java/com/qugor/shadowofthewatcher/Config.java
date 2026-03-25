@@ -22,6 +22,27 @@ public class Config {
     private static final ForgeConfigSpec.IntValue WATCHER_POWER = BUILDER
         .defineInRange("watcherPower", 42, 0, Integer.MAX_VALUE);
 
+    private static final ForgeConfigSpec.IntValue WATCHER_STALK_DISTANCE_CHUNKS = BUILDER
+        .defineInRange("watcherStalkDistanceChunks", 6, 1, 64);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_STALK_DISTANCE_SPREAD_CHUNKS = BUILDER
+        .defineInRange("watcherStalkDistanceSpreadChunks", 0, 0, 16);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_VANISH_WHEN_CLOSER_THAN_CHUNKS = BUILDER
+        .defineInRange("watcherVanishWhenCloserThanChunks", 4, 1, 64);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_FLEE_FAR_DISTANCE_CHUNKS = BUILDER
+        .defineInRange("watcherFleeFarDistanceChunks", 14, 4, 64);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_FLEE_COOLDOWN_TICKS = BUILDER
+        .defineInRange("watcherFleeCooldownTicks", 60, 0, 600);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_PURSUIT_MARGIN_BLOCKS = BUILDER
+        .defineInRange("watcherPursuitMarginBlocks", 16, 1, 128);
+
+    private static final ForgeConfigSpec.IntValue WATCHER_TARGET_SWITCH_MINUTES = BUILDER
+        .defineInRange("watcherTargetSwitchMinutes", 5, 1, 10080);
+
     private static final ForgeConfigSpec.ConfigValue<String> WATCHER_POWER_INTRODUCTION = BUILDER
         .define("watcherPowerIntroduction", "Watcher power is... ");
 
@@ -32,6 +53,13 @@ public class Config {
 
     public static boolean logShadowBlock;
     public static int watcherPower;
+    public static int watcherStalkDistanceChunks;
+    public static int watcherStalkDistanceSpreadChunks;
+    public static int watcherVanishWhenCloserThanChunks;
+    public static int watcherFleeFarDistanceChunks;
+    public static int watcherFleeCooldownTicks;
+    public static int watcherPursuitMarginBlocks;
+    public static int watcherTargetSwitchMinutes;
     public static String watcherPowerIntroduction;
     public static Set<Item> items;
 
@@ -45,6 +73,16 @@ public class Config {
     static void onLoad(final ModConfigEvent event) {
         logShadowBlock = LOG_SHADOW_BLOCK.get();
         watcherPower = WATCHER_POWER.get();
+        watcherStalkDistanceChunks = WATCHER_STALK_DISTANCE_CHUNKS.get();
+        watcherStalkDistanceSpreadChunks = WATCHER_STALK_DISTANCE_SPREAD_CHUNKS.get();
+        watcherVanishWhenCloserThanChunks = WATCHER_VANISH_WHEN_CLOSER_THAN_CHUNKS.get();
+        if (watcherVanishWhenCloserThanChunks >= watcherStalkDistanceChunks) {
+            watcherVanishWhenCloserThanChunks = Math.max(1, watcherStalkDistanceChunks - 1);
+        }
+        watcherFleeFarDistanceChunks = WATCHER_FLEE_FAR_DISTANCE_CHUNKS.get();
+        watcherFleeCooldownTicks = WATCHER_FLEE_COOLDOWN_TICKS.get();
+        watcherPursuitMarginBlocks = WATCHER_PURSUIT_MARGIN_BLOCKS.get();
+        watcherTargetSwitchMinutes = WATCHER_TARGET_SWITCH_MINUTES.get();
         watcherPowerIntroduction = WATCHER_POWER_INTRODUCTION.get();
 
         items = ITEM_STRINGS.get().stream()

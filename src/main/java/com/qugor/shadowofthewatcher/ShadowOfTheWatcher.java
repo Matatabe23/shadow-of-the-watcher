@@ -1,9 +1,10 @@
 package com.qugor.shadowofthewatcher;
 
 import com.mojang.logging.LogUtils;
+import com.qugor.shadowofthewatcher.registry.ModEntityTypes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.world.food.FoodProperties;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
@@ -20,6 +21,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
@@ -43,14 +45,12 @@ public final class ShadowOfTheWatcher {
         () -> new BlockItem(SHADOW_BLOCK.get(), new Item.Properties()));
 
     public static final RegistryObject<Item> WATCHER_ITEM = ITEMS.register("watcher_item",
-        () -> new Item(new Item.Properties().food(new FoodProperties.Builder()
-            .alwaysEat()
-            .nutrition(1)
-            .saturationMod(2f)
-            .build())));
+        () -> new ForgeSpawnEggItem(ModEntityTypes.WATCHER, WatcherSpawnEggColors.SILVERFISH_BACKGROUND,
+            WatcherSpawnEggColors.SILVERFISH_HIGHLIGHT, new Item.Properties()));
 
     public static final RegistryObject<CreativeModeTab> WATCHER_TAB = CREATIVE_MODE_TABS.register("watcher_tab",
         () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.shadow_of_the_watcher.watcher_tab"))
             .withTabsBefore(CreativeModeTabs.COMBAT)
             .icon(() -> WATCHER_ITEM.get().getDefaultInstance())
             .displayItems((parameters, output) -> output.accept(WATCHER_ITEM.get()))
@@ -62,6 +62,7 @@ public final class ShadowOfTheWatcher {
         modEventBus.addListener(this::commonSetup);
 
         BLOCKS.register(modEventBus);
+        ModEntityTypes.ENTITY_TYPES.register(modEventBus);
         ITEMS.register(modEventBus);
         CREATIVE_MODE_TABS.register(modEventBus);
 
@@ -91,6 +92,7 @@ public final class ShadowOfTheWatcher {
             LOGGER.info("CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
+
     }
 }
 
