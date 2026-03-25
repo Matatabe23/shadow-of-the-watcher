@@ -1,10 +1,8 @@
 {
   "pack": {
-    "description": "Тень Смотрящего ресурсы",
-    "max_format": 94,
-    "min_format": [
-      94,
-      1
-    ]
+    "description": {
+      "text": "${mod_id} resources"
+    },
+    "pack_format": 15
   }
 }
